@@ -62,13 +62,34 @@ function buildExpressApp(deps: {
   app.use(
     cors({
       origin: (origin, cb) => {
-        if (!origin || allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
+        // Allow requests with no origin (e.g. mobile apps, curl, server-to-server)
+        if (!origin) {
           cb(null, true);
           return;
         }
-        cb(new Error(`CORS origin blocked: ${origin}`));
+
+        // Always allow localhost / 127.0.0.1 for local development
+        if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+          cb(null, true);
+          return;
+        }
+
+        // Always allow Vercel deployment domains (production, preview branches, team alias)
+        if (
+          /^https:\/\/([a-z0-9-]+)\.vercel\.app$/i.test(origin) ||
+          allowedOrigins.includes('*') ||
+          allowedOrigins.includes(origin)
+        ) {
+          cb(null, true);
+          return;
+        }
+
+        // Return false without throwing an unhandled exception
+        cb(null, false);
       },
       credentials: true,
+      methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'x-requested-with', 'x-matched-path'],
     }),
   );
 

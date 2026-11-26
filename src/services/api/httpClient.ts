@@ -90,10 +90,20 @@ export async function apiFetch<T>(
     }
   }
 
-  const response = await fetch(`${API_BASE_URL}/api${path}`, {
-    ...options,
-    headers,
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}/api${path}`, {
+      ...options,
+      headers,
+    });
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    throw new ApiClientError(
+      0,
+      'NETWORK_ERROR',
+      `Network request failed (${msg}). Please verify server connectivity.`,
+    );
+  }
 
   if (response.status === 204) {
     return undefined as T;
