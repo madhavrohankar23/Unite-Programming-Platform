@@ -1,38 +1,57 @@
 function isLocalHost(): boolean {
-  if (typeof window === 'undefined') return true;
+  if (typeof window === 'undefined') return false;
   const host = window.location.hostname;
   return host === 'localhost' || host === '127.0.0.1';
 }
 
 function resolveApiBaseUrl(): string {
+  // On deployed remote production/preview domains (non-localhost):
+  if (!isLocalHost()) {
+    const configured = (import.meta.env.VITE_API_URL as string | undefined)
+      ?.trim()
+      .replace(/\/$/, '');
+    // Only use an explicitly configured remote HTTPS backend URL
+    if (configured && configured.startsWith('https://')) {
+      return configured;
+    }
+    // Always use same-origin relative URLs (/api/*) in production
+    return '';
+  }
+
+  // Local development on localhost:
   const configured = (import.meta.env.VITE_API_URL as string | undefined)
     ?.trim()
     .replace(/\/$/, '');
-  if (configured) return configured;
-  // On deployed Vercel production/preview without a separate backend URL, use same-origin /api/*
-  if (!isLocalHost()) return '';
-  return 'http://localhost:4000';
+  return configured || 'http://localhost:4000';
 }
 
 export const API_BASE_URL = resolveApiBaseUrl();
 
 export const HAS_REALTIME_WS = Boolean(
-  (import.meta.env.VITE_COLLAB_WS_URL as string | undefined)?.trim() ||
-    (import.meta.env.VITE_API_URL as string | undefined)?.trim() ||
-    isLocalHost(),
+  isLocalHost() ||
+    Boolean(
+      (import.meta.env.VITE_COLLAB_WS_URL as string | undefined)
+        ?.trim()
+        ?.startsWith('wss://'),
+    ),
 );
 
 function resolveWsUrl(envValue: string | undefined, path: string): string {
+  if (isLocalHost()) {
+    const configured = envValue?.trim().replace(/\/$/, '');
+    if (configured) return configured;
+    return `ws://localhost:4000${path}`;
+  }
+
   const configured = envValue?.trim().replace(/\/$/, '');
-  if (configured) return configured;
-  if (API_BASE_URL) {
-    return API_BASE_URL.replace(/^http/, 'ws') + path;
+  if (configured && configured.startsWith('wss://')) {
+    return configured;
   }
   if (typeof window !== 'undefined') {
     const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     return `${proto}//${window.location.host}${path}`;
   }
-  return `ws://localhost:4000${path}`;
+  return '';
 }
 
 export const COLLAB_WS_URL = resolveWsUrl(
