@@ -16,7 +16,7 @@ import { createLogger, type AppLogger } from './utils/logger.js';
 import { FileService } from './workspace/fileService.js';
 import { WorkspaceService } from './workspace/workspaceService.js';
 
-export interface UniteServerInstance {
+export interface UniteExpressAppInstance {
   env: ServerEnv;
   logger: AppLogger;
   db: DatabaseRepositories;
@@ -24,6 +24,9 @@ export interface UniteServerInstance {
   workspaceService: WorkspaceService;
   fileService: FileService;
   app: express.Express;
+}
+
+export interface UniteServerInstance extends UniteExpressAppInstance {
   httpServer: http.Server;
   collabServer: CollaborationServer;
   eventHub: WorkspaceEventHub;
@@ -32,20 +35,16 @@ export interface UniteServerInstance {
   close(): Promise<void>;
 }
 
-export async function createUniteServer(
-  envOverrides?: Partial<Record<string, string>>,
-): Promise<UniteServerInstance> {
-  const env = loadEnv(envOverrides);
-  const logger = createLogger(env.NODE_ENV === 'test' ? 'silent' : 'info');
-  const db = await createDatabase(env);
-  const authService = new AuthService(env, db);
-  const eventHub = new WorkspaceEventHub(authService, db, logger);
-  const collabServer = new CollaborationServer(authService, db, logger);
-  const workspaceService = new WorkspaceService(db, eventHub);
-  const fileService = new FileService(db, eventHub, collabServer);
-  const executionService = new HostedExecutionService(env, db);
-  const terminalGateway = new TerminalGateway(env, authService, db, logger);
-
+function buildExpressApp(deps: {
+  env: ServerEnv;
+  logger: AppLogger;
+  db: DatabaseRepositories;
+  authService: AuthService;
+  workspaceService: WorkspaceService;
+  fileService: FileService;
+  executionService: HostedExecutionService;
+}): express.Express {
+  const { env, logger } = deps;
   const app = express();
   app.set('trust proxy', 1);
 
@@ -75,20 +74,66 @@ export async function createUniteServer(
 
   app.use(express.json({ limit: '512kb' }));
   app.use('/api', createApiRateLimiter(env.NODE_ENV === 'test'));
-
-  app.use(
-    '/api',
-    createApiRouter({
-      env,
-      db,
-      authService,
-      workspaceService,
-      fileService,
-      executionService,
-    }),
-  );
-
+  app.use('/api', createApiRouter(deps));
+  app.use(createApiRouter(deps));
   app.use(createErrorHandler(logger, env.NODE_ENV === 'production'));
+
+  return app;
+}
+
+/**
+ * Creates a stateless Express REST API instance (used by Vercel serverless functions).
+ */
+export async function createUniteExpressApp(
+  envOverrides?: Partial<Record<string, string>>,
+): Promise<UniteExpressAppInstance> {
+  const env = loadEnv(envOverrides);
+  const logger = createLogger(env.NODE_ENV === 'test' ? 'silent' : 'info');
+  const db = await createDatabase(env);
+  const authService = new AuthService(env, db);
+  const workspaceService = new WorkspaceService(db);
+  const fileService = new FileService(db);
+  const executionService = new HostedExecutionService(env, db);
+
+  const app = buildExpressApp({
+    env,
+    logger,
+    db,
+    authService,
+    workspaceService,
+    fileService,
+    executionService,
+  });
+
+  return { env, logger, db, authService, workspaceService, fileService, app };
+}
+
+/**
+ * Creates the full persistent Node.js server (Express + Hocuspocus + WebSocket hubs).
+ */
+export async function createUniteServer(
+  envOverrides?: Partial<Record<string, string>>,
+): Promise<UniteServerInstance> {
+  const env = loadEnv(envOverrides);
+  const logger = createLogger(env.NODE_ENV === 'test' ? 'silent' : 'info');
+  const db = await createDatabase(env);
+  const authService = new AuthService(env, db);
+  const eventHub = new WorkspaceEventHub(authService, db, logger);
+  const collabServer = new CollaborationServer(authService, db, logger);
+  const workspaceService = new WorkspaceService(db, eventHub);
+  const fileService = new FileService(db, eventHub, collabServer);
+  const executionService = new HostedExecutionService(env, db);
+  const terminalGateway = new TerminalGateway(env, authService, db, logger);
+
+  const app = buildExpressApp({
+    env,
+    logger,
+    db,
+    authService,
+    workspaceService,
+    fileService,
+    executionService,
+  });
 
   const httpServer = http.createServer(app);
 
@@ -151,4 +196,3 @@ export async function createUniteServer(
     },
   };
 }
-

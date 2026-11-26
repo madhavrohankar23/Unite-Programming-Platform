@@ -13,7 +13,7 @@ import {
 } from '@/features/execution/webContainerRuntime';
 import { useTheme } from '@/features/theme/ThemeContext';
 import { cn } from '@/lib/utilities/cn';
-import { TERMINAL_WS_URL } from '@/services/api/httpClient';
+import { HAS_REALTIME_WS, TERMINAL_WS_URL } from '@/services/api/httpClient';
 
 interface TerminalTab {
   id: string;
@@ -137,7 +137,7 @@ export function TerminalPanel({
         return;
       }
 
-      if (accessToken) {
+      if (HAS_REALTIME_WS && accessToken) {
         try {
           const ws = new WebSocket(
             `${TERMINAL_WS_URL}?workspaceId=${encodeURIComponent(workspaceId)}&token=${encodeURIComponent(accessToken)}`,

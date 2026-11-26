@@ -1,21 +1,56 @@
-export const API_BASE_URL =
-  (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, '') ||
-  'http://localhost:4000';
+function isLocalHost(): boolean {
+  if (typeof window === 'undefined') return true;
+  const host = window.location.hostname;
+  return host === 'localhost' || host === '127.0.0.1';
+}
 
-export const COLLAB_WS_URL =
-  (import.meta.env.VITE_COLLAB_WS_URL as string | undefined)?.replace(/\/$/, '') ||
-  API_BASE_URL.replace(/^http/, 'ws') + '/collab';
+function resolveApiBaseUrl(): string {
+  const configured = (import.meta.env.VITE_API_URL as string | undefined)
+    ?.trim()
+    .replace(/\/$/, '');
+  if (configured) return configured;
+  // On deployed Vercel production/preview without a separate backend URL, use same-origin /api/*
+  if (!isLocalHost()) return '';
+  return 'http://localhost:4000';
+}
 
-export const EVENTS_WS_URL =
-  (import.meta.env.VITE_EVENTS_WS_URL as string | undefined)?.replace(/\/$/, '') ||
-  API_BASE_URL.replace(/^http/, 'ws') + '/ws/events';
+export const API_BASE_URL = resolveApiBaseUrl();
 
-export const NOTIFICATIONS_WS_URL =
-  API_BASE_URL.replace(/^http/, 'ws') + '/ws/notifications';
+export const HAS_REALTIME_WS = Boolean(
+  (import.meta.env.VITE_COLLAB_WS_URL as string | undefined)?.trim() ||
+    (import.meta.env.VITE_API_URL as string | undefined)?.trim() ||
+    isLocalHost(),
+);
 
-export const TERMINAL_WS_URL =
-  (import.meta.env.VITE_TERMINAL_WS_URL as string | undefined)?.replace(/\/$/, '') ||
-  API_BASE_URL.replace(/^http/, 'ws') + '/ws/terminal';
+function resolveWsUrl(envValue: string | undefined, path: string): string {
+  const configured = envValue?.trim().replace(/\/$/, '');
+  if (configured) return configured;
+  if (API_BASE_URL) {
+    return API_BASE_URL.replace(/^http/, 'ws') + path;
+  }
+  if (typeof window !== 'undefined') {
+    const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    return `${proto}//${window.location.host}${path}`;
+  }
+  return `ws://localhost:4000${path}`;
+}
+
+export const COLLAB_WS_URL = resolveWsUrl(
+  import.meta.env.VITE_COLLAB_WS_URL as string | undefined,
+  '/collab',
+);
+
+export const EVENTS_WS_URL = resolveWsUrl(
+  import.meta.env.VITE_EVENTS_WS_URL as string | undefined,
+  '/ws/events',
+);
+
+export const NOTIFICATIONS_WS_URL = resolveWsUrl(undefined, '/ws/notifications');
+
+export const TERMINAL_WS_URL = resolveWsUrl(
+  import.meta.env.VITE_TERMINAL_WS_URL as string | undefined,
+  '/ws/terminal',
+);
 
 export class ApiClientError extends Error {
   constructor(
@@ -77,4 +112,3 @@ export async function apiFetch<T>(
 
   return data as T;
 }
-

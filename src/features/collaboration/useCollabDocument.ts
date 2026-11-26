@@ -3,13 +3,14 @@ import { buildCollabDocName, type UserProfileDto } from '@shared/types/models';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import * as Y from 'yjs';
 import { getCollaboratorColor } from '@/lib/utilities/colors';
-import { COLLAB_WS_URL } from '@/services/api/httpClient';
+import { COLLAB_WS_URL, HAS_REALTIME_WS } from '@/services/api/httpClient';
 
 export type CollabConnectionStatus =
   | 'connecting'
   | 'connected'
   | 'reconnecting'
   | 'disconnected'
+  | 'serverless'
   | 'error';
 
 export interface AwarenessPeer {
@@ -26,6 +27,7 @@ interface UseCollabDocumentOptions {
   workspaceId: string;
   fileId: string | null;
   fileName: string | null;
+  initialContent?: string | null;
   user: UserProfileDto | null;
   accessToken: string | null;
 }
@@ -34,6 +36,7 @@ export function useCollabDocument({
   workspaceId,
   fileId,
   fileName,
+  initialContent = '',
   user,
   accessToken,
 }: UseCollabDocumentOptions) {
@@ -43,6 +46,8 @@ export function useCollabDocument({
   const [docInstance, setDocInstance] = useState<Y.Doc | null>(null);
   const [providerInstance, setProviderInstance] = useState<HocuspocusProvider | null>(null);
   const styleElRef = useRef<HTMLStyleElement | null>(null);
+  const initialContentRef = useRef(initialContent);
+  initialContentRef.current = initialContent;
 
   const docName = useMemo(
     () => (fileId ? buildCollabDocName(workspaceId, fileId) : null),
@@ -59,10 +64,38 @@ export function useCollabDocument({
       return;
     }
 
+    const yDoc = new Y.Doc();
+
+    // When deployed purely on Vercel serverless without a separate WS server,
+    // seed Y.Doc from PostgreSQL contentSnapshot so editing, saving, and execution work cleanly.
+    if (!HAS_REALTIME_WS) {
+      const seed = initialContentRef.current ?? '';
+      if (seed.length > 0) {
+        yDoc.getText('monaco').insert(0, seed);
+      }
+      setDocInstance(yDoc);
+      setProviderInstance(null);
+      setIsSynced(true);
+      setStatus('serverless');
+      setPeers([
+        {
+          clientId: 0,
+          userId: user.id,
+          name: user.displayName,
+          color: getCollaboratorColor(user.id),
+          activeFileId: fileId ?? undefined,
+          activeFileName: fileName ?? undefined,
+          isSelf: true,
+        },
+      ]);
+      return () => {
+        yDoc.destroy();
+      };
+    }
+
     setStatus('connecting');
     setIsSynced(false);
 
-    const yDoc = new Y.Doc();
     const wsProvider = new HocuspocusProviderWebsocket({
       url: COLLAB_WS_URL,
       minDelay: 500,
@@ -175,4 +208,3 @@ export function useCollabDocument({
     peers,
   };
 }
-

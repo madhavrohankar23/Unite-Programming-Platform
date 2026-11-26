@@ -1,6 +1,6 @@
 import type { WorkspaceEventPayload } from '@shared/types/models';
 import { useEffect, useRef } from 'react';
-import { NOTIFICATIONS_WS_URL } from '@/services/api/httpClient';
+import { HAS_REALTIME_WS, NOTIFICATIONS_WS_URL } from '@/services/api/httpClient';
 
 export function useUserNotifications(
   accessToken: string | null,
@@ -11,7 +11,7 @@ export function useUserNotifications(
   onEventRef.current = onEvent;
 
   useEffect(() => {
-    if (!enabled || !accessToken) return;
+    if (!HAS_REALTIME_WS || !enabled || !accessToken) return;
 
     let closed = false;
     let ws: WebSocket | null = null;

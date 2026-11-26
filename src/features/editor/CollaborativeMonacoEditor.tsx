@@ -93,7 +93,7 @@ export function CollaborativeMonacoEditor({
 
   useEffect(() => {
     const editor = editorRef.current;
-    if (!editorReady || !editor || !yDoc || !provider || !provider.awareness) {
+    if (!editorReady || !editor || !yDoc) {
       return;
     }
 
@@ -106,7 +106,7 @@ export function CollaborativeMonacoEditor({
       yText,
       model,
       new Set([editor]),
-      provider.awareness,
+      provider?.awareness ?? null,
     );
     bindingRef.current = binding;
 

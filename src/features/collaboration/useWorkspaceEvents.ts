@@ -1,6 +1,6 @@
 import type { WorkspaceEventPayload } from '@shared/types/models';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { EVENTS_WS_URL } from '@/services/api/httpClient';
+import { EVENTS_WS_URL, HAS_REALTIME_WS } from '@/services/api/httpClient';
 
 export function useWorkspaceEvents(
   workspaceId: string,
@@ -13,7 +13,7 @@ export function useWorkspaceEvents(
   onEventRef.current = onEvent;
 
   useEffect(() => {
-    if (!workspaceId || !accessToken) {
+    if (!HAS_REALTIME_WS || !workspaceId || !accessToken) {
       setConnected(false);
       return;
     }

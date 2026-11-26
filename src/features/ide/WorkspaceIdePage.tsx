@@ -68,6 +68,7 @@ import { WorkspaceSettingsModal } from '@/features/workspaces/WorkspaceSettingsM
 import { cn } from '@/lib/utilities/cn';
 import { executionApi } from '@/services/api/executionApi';
 import { filesApi } from '@/services/api/filesApi';
+import { HAS_REALTIME_WS } from '@/services/api/httpClient';
 import { workspacesApi } from '@/services/api/workspacesApi';
 import { ApprovalPopups } from './ApprovalPopups';
 import { LiveServerPanel } from './LiveServerPanel';
@@ -84,6 +85,14 @@ function ConnectionPill({
   isSynced: boolean;
   eventsConnected: boolean;
 }) {
+  if (collabStatus === 'serverless') {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-[#22C55E]/30 bg-[#22C55E]/10 px-2.5 py-0.5 text-[11px] font-medium text-[#16A34A]">
+        <span className="h-1.5 w-1.5 rounded-full bg-[#22C55E]" />
+        Cloud DB Synced
+      </span>
+    );
+  }
   if (collabStatus === 'error') {
     return (
       <span className="inline-flex items-center gap-1.5 rounded-full border border-[#EF4444]/35 bg-[#EF4444]/10 px-2.5 py-0.5 text-[11px] font-medium text-red-500">
@@ -339,9 +348,33 @@ export function WorkspaceIdePage() {
     workspaceId,
     fileId: activeFile?.id ?? null,
     fileName: activeFile?.name ?? null,
+    initialContent: activeFile?.contentSnapshot ?? '',
     user,
     accessToken,
   });
+
+  // Fallback sync on serverless deployments without a persistent WebSocket host
+  const currentRoleForSync = workspace?.currentUserRole;
+  useEffect(() => {
+    if (HAS_REALTIME_WS || !workspaceId || !currentRoleForSync) return;
+    const interval = window.setInterval(async () => {
+      try {
+        if (currentRoleForSync === 'OWNER') {
+          const [jrRes, crRes] = await Promise.all([
+            workspacesApi.listPendingJoinRequests(workspaceId),
+            filesApi.listPendingChangeRequests(workspaceId),
+          ]);
+          setPendingJoinRequests(jrRes.requests);
+          setPendingChangeRequests(crRes.changeRequests);
+        }
+        const { workspace: latest } = await workspacesApi.get(workspaceId);
+        setWorkspace(latest);
+      } catch {
+        // ignore transient refresh error
+      }
+    }, 5000);
+    return () => window.clearInterval(interval);
+  }, [workspaceId, currentRoleForSync]);
 
   const userRole = workspace?.currentUserRole ?? 'VIEWER';
   const isOwner = userRole === 'OWNER';
