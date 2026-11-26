@@ -1,0 +1,32 @@
+services:
+  - type: web
+    name: unite-backend
+    runtime: node
+    plan: free
+    buildCommand: npm ci && npm run prisma:generate && npm run build:server
+    startCommand: npm --workspace=server run start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: CLIENT_ORIGIN
+        value: https://unite-with.vercel.app
+      - key: STORAGE_DRIVER
+        value: prisma
+      - key: AUTH_PROVIDER
+        value: supabase
+      - key: DATABASE_URL
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_JWT_SECRET
+        sync: false
+      - key: LOCAL_JWT_SECRET
+        generateValue: true
+      - key: EXECUTION_PROVIDER
+        value: piston
+      - key: EXECUTION_API_URL
+        value: https://emkc.org/api/v2/piston/execute
+

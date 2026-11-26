@@ -27,3 +27,6 @@ Thumbs.db
 # Test coverage
 coverage/
 
+# Vercel CLI link
+.vercel/
+
