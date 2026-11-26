@@ -1,0 +1,254 @@
+// Prisma schema for Unite (Supabase PostgreSQL)
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum WorkspaceRole {
+  OWNER
+  EDITOR
+  VIEWER
+}
+
+enum FileNodeType {
+  FILE
+  FOLDER
+}
+
+enum ExecutionStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  COMPILE_ERROR
+  RUNTIME_ERROR
+  TIMEOUT
+  CANCELLED
+  UNAVAILABLE
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model UserProfile {
+  id           String   @id @default(cuid())
+  authUserId   String   @unique
+  email        String   @unique
+  displayName  String
+  avatarUrl    String?
+  passwordHash String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  ownedWorkspaces      Workspace[]            @relation("WorkspaceOwner")
+  memberships          WorkspaceMember[]
+  invitations          WorkspaceInvitation[]  @relation("InvitationCreator")
+  joinRequests         WorkspaceJoinRequest[]
+  createdFiles         WorkspaceFile[]        @relation("FileCreator")
+  authoredChanges      FileChangeRequest[]    @relation("ChangeAuthor")
+  authoredVersions     FileVersion[]          @relation("VersionAuthor")
+  approvedVersions     FileVersion[]          @relation("VersionApprover")
+  executions           ExecutionRecord[]
+  auditLogs            AuditLog[]
+}
+
+model Workspace {
+  id                String   @id @default(cuid())
+  name              String
+  ownerId           String
+  joinCode          String   @unique
+  category          String   @default("programming")
+  defaultLanguage   String   @default("javascript")
+  liveServerEnabled Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  owner           UserProfile            @relation("WorkspaceOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members         WorkspaceMember[]
+  invitations     WorkspaceInvitation[]
+  joinRequests    WorkspaceJoinRequest[]
+  files           WorkspaceFile[]
+  collabDocuments CollabDocument[]
+  changeRequests  FileChangeRequest[]
+  fileVersions    FileVersion[]
+  executions      ExecutionRecord[]
+  auditLogs       AuditLog[]
+
+  @@index([ownerId])
+  @@index([joinCode])
+}
+
+model WorkspaceMember {
+  id          String        @id @default(cuid())
+  workspaceId String
+  userId      String
+  role        WorkspaceRole @default(EDITOR)
+  joinedAt    DateTime      @default(now())
+
+  workspace Workspace   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, userId])
+  @@index([userId])
+}
+
+model WorkspaceInvitation {
+  id          String        @id @default(cuid())
+  workspaceId String
+  tokenHash   String        @unique
+  codePrefix  String
+  role        WorkspaceRole @default(EDITOR)
+  expiresAt   DateTime?
+  maxUses     Int?
+  useCount    Int           @default(0)
+  createdById String
+  revokedAt   DateTime?
+  createdAt   DateTime      @default(now())
+
+  workspace Workspace   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy UserProfile @relation("InvitationCreator", fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+  @@index([codePrefix])
+}
+
+model WorkspaceJoinRequest {
+  id           String         @id @default(cuid())
+  workspaceId  String
+  userId       String
+  status       ApprovalStatus @default(PENDING)
+  assignedRole WorkspaceRole?
+  createdAt    DateTime       @default(now())
+  decidedAt    DateTime?
+
+  workspace Workspace   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, status])
+  @@index([userId, workspaceId])
+}
+
+model WorkspaceFile {
+  id              String       @id @default(cuid())
+  workspaceId     String
+  parentId        String?
+  name            String
+  nodeType        FileNodeType
+  language        String       @default("plaintext")
+  contentSnapshot String?
+  createdById     String
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  workspace      Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  parent         WorkspaceFile?      @relation("FileTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children       WorkspaceFile[]     @relation("FileTree")
+  createdBy      UserProfile         @relation("FileCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  collabDocument CollabDocument?
+  changeRequests FileChangeRequest[]
+  versions       FileVersion[]
+  executions     ExecutionRecord[]
+
+  @@unique([workspaceId, parentId, name])
+  @@index([workspaceId])
+  @@index([parentId])
+}
+
+model FileChangeRequest {
+  id              String         @id @default(cuid())
+  workspaceId     String
+  fileId          String
+  authorId        String
+  previousContent String
+  proposedContent String
+  summary         String         @default("Proposed code update")
+  status          ApprovalStatus @default(PENDING)
+  createdAt       DateTime       @default(now())
+  decidedAt       DateTime?
+
+  workspace Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  file      WorkspaceFile @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  author    UserProfile   @relation("ChangeAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, status])
+  @@index([fileId])
+}
+
+model FileVersion {
+  id            String   @id @default(cuid())
+  workspaceId   String
+  fileId        String
+  versionNumber Int
+  content       String
+  summary       String   @default("Saved snapshot")
+  authorId      String
+  approvedById  String
+  createdAt     DateTime @default(now())
+
+  workspace  Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  file       WorkspaceFile @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  author     UserProfile   @relation("VersionAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  approvedBy UserProfile   @relation("VersionApprover", fields: [approvedById], references: [id], onDelete: Cascade)
+
+  @@index([fileId, versionNumber])
+  @@index([workspaceId])
+}
+
+model CollabDocument {
+  id          String   @id @default(cuid())
+  docName     String   @unique
+  workspaceId String
+  fileId      String   @unique
+  state       Bytes
+  updatedAt   DateTime @updatedAt
+
+  workspace Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  file      WorkspaceFile @relation(fields: [fileId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+}
+
+model ExecutionRecord {
+  id          String          @id @default(cuid())
+  workspaceId String
+  fileId      String?
+  userId      String
+  language    String
+  provider    String
+  status      ExecutionStatus
+  exitCode    Int?
+  stdout      String          @default("")
+  stderr      String          @default("")
+  durationMs  Int             @default(0)
+  startedAt   DateTime        @default(now())
+  finishedAt  DateTime        @default(now())
+
+  workspace Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  file      WorkspaceFile? @relation(fields: [fileId], references: [id], onDelete: SetNull)
+  user      UserProfile    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, startedAt])
+}
+
+model AuditLog {
+  id           String   @id @default(cuid())
+  workspaceId  String?
+  userId       String
+  action       String
+  resourceType String
+  resourceId   String
+  metadata     String   @default("{}")
+  createdAt    DateTime @default(now())
+
+  workspace Workspace?  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, createdAt])
+  @@index([userId, createdAt])
+}

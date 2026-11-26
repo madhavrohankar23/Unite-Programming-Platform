@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <linearGradient id="uniteGrad" x1="12" y1="8" x2="52" y2="56" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#22D3EE" />
+      <stop offset="100%" stop-color="#14B8A6" />
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="16" fill="#0E1523" />
+  <rect x="0.75" y="0.75" width="62.5" height="62.5" rx="15.25" stroke="rgba(148,163,184,0.16)" stroke-width="1.5" />
+  <path
+    d="M17 16L27 25V37.5L32 42L37 37.5V25L47 16V37.5C47 40.5 45.4 43.3 42.8 44.8L32 51L21.2 44.8C18.6 43.3 17 40.5 17 37.5V16Z"
+    stroke="url(#uniteGrad)"
+    stroke-width="2.4"
+    stroke-linejoin="round"
+  />
+  <path
+    d="M22.5 22V36L32 45L41.5 36V22"
+    stroke="url(#uniteGrad)"
+    stroke-width="2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <path
+    d="M27 31L32 26.5L37 31L32 35.5L27 31Z"
+    stroke="url(#uniteGrad)"
+    stroke-width="2"
+    stroke-linejoin="round"
+  />
+</svg>
+

@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build outputs
+dist/
+server/dist/
+build/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Local dev database & logs
+.unite-data/
+*.log
+npm-debug.log*
+
+# IDE & OS
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Test coverage
+coverage/
+

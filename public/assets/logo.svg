@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <linearGradient id="uniteLogoGrad" x1="12" y1="8" x2="52" y2="56" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#22D3EE" />
+      <stop offset="100%" stop-color="#14B8A6" />
+    </linearGradient>
+  </defs>
+  <path
+    d="M17 14L27 23V37L32 41.5L37 37V23L47 14V37C47 40.2 45.3 43.2 42.5 44.8L32 51L21.5 44.8C18.7 43.2 17 40.2 17 37V14Z"
+    stroke="url(#uniteLogoGrad)"
+    stroke-width="2.5"
+    stroke-linejoin="round"
+  />
+  <path
+    d="M22.5 20.5V35.5L32 44.5L41.5 35.5V20.5"
+    stroke="url(#uniteLogoGrad)"
+    stroke-width="2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <path
+    d="M26.5 30.5L32 25.5L37.5 30.5L32 35.5L26.5 30.5Z"
+    stroke="url(#uniteLogoGrad)"
+    stroke-width="2"
+    stroke-linejoin="round"
+  />
+</svg>
+

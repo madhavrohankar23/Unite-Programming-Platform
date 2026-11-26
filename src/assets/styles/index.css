@@ -1,0 +1,140 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================================
+   UNITE DESIGN TOKENS — DARK MODE (DEFAULT, INTACT) & DAYLIGHT MODE (PURE WHITE / DEEP BLACK GRADIENTS)
+   ============================================================================ */
+:root,
+html[data-theme='dark'] {
+  --unite-bg: #080d17;
+  --unite-surface: #0e1523;
+  --unite-elevated: #141d2d;
+  --unite-card: #192438;
+  --unite-border: rgba(148, 163, 184, 0.12);
+  --unite-border-strong: rgba(148, 163, 184, 0.22);
+  --unite-text: #f8fafc;
+  --unite-text-secondary: #94a3b8;
+  --unite-text-muted: #64748b;
+  --unite-blue: #2563eb;
+  --unite-blue-hover: #3b82f6;
+  --unite-cyan: #22d3ee;
+  --unite-teal: #14b8a6;
+  --unite-accent: #22d3ee;
+  --unite-hover-bg: rgba(20, 29, 45, 0.75);
+  --unite-glass: rgba(14, 21, 35, 0.88);
+  --unite-input-bg: rgba(8, 13, 23, 0.85);
+}
+
+html[data-theme='light'] {
+  --unite-bg: #ffffff;
+  --unite-surface: #fafafa;
+  --unite-elevated: #f4f4f5;
+  --unite-card: #ffffff;
+  --unite-border: rgba(0, 0, 0, 0.09);
+  --unite-border-strong: rgba(0, 0, 0, 0.18);
+  --unite-text: #000000;
+  --unite-text-secondary: #52525b;
+  --unite-text-muted: #71717a;
+  --unite-blue: #000000;
+  --unite-blue-hover: #18181b;
+  --unite-cyan: #000000;
+  --unite-teal: #27272a;
+  --unite-accent: #000000;
+  --unite-hover-bg: rgba(0, 0, 0, 0.045);
+  --unite-glass: rgba(255, 255, 255, 0.86);
+  --unite-input-bg: #ffffff;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  background-color: var(--unite-bg);
+  color: var(--unite-text);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+/* Monochrome Apple/Linear gradient overlays in Daylight Mode */
+html[data-theme='light'] .unite-light-canvas {
+  background:
+    radial-gradient(900px circle at 50% 0%, rgba(0, 0, 0, 0.055), transparent 60%),
+    linear-gradient(180deg, #ffffff 0%, #f5f5f7 100%);
+}
+
+html[data-theme='light'] .unite-light-surface {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(244, 244, 245, 0.92) 100%);
+  backdrop-filter: blur(18px);
+}
+
+html[data-theme='light'] .unite-light-card {
+  background: linear-gradient(145deg, #ffffff 0%, #f4f4f5 100%);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.04),
+    0 12px 30px rgba(0, 0, 0, 0.05);
+}
+
+/* Subtle custom scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.25);
+  border-radius: 9999px;
+}
+
+html[data-theme='light'] ::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.16);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.4);
+}
+
+html[data-theme='light'] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+/* Yjs remote cursor base styles */
+.yRemoteSelection {
+  background-color: rgba(34, 211, 238, 0.22);
+}
+
+.yRemoteSelectionHead {
+  position: relative;
+  border-left: 2px solid #22d3ee;
+  border-top: 2px solid #22d3ee;
+  border-bottom: 2px solid #22d3ee;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.yRemoteSelectionHead::after {
+  position: absolute;
+  top: -18px;
+  left: -2px;
+  padding: 1px 6px;
+  border-radius: 4px 4px 4px 0;
+  font-family: 'Inter', sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 14px;
+  white-space: nowrap;
+  color: #080d17;
+  background-color: #22d3ee;
+  pointer-events: none;
+  z-index: 30;
+}
+
+/* xterm fit */
+.xterm {
+  height: 100%;
+  padding: 8px 10px;
+}
